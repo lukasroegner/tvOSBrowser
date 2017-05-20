@@ -8,7 +8,6 @@
 //
 
 #import "ViewController.h"
-#import <GameController/GameController.h>
 
 typedef struct _Input
 {
@@ -26,7 +25,7 @@ typedef struct _Input
     NSString *previousURL;
 }
 
-@property UIWebView *webview;
+@property id webview;
 @property (strong) CADisplayLink *link;
 @property (strong, nonatomic) GCController *controller;
 @property BOOL cursorMode;
@@ -41,18 +40,21 @@ typedef struct _Input
     UITapGestureRecognizer *touchSurfaceDoubleTapRecognizer;
     UITapGestureRecognizer *playPauseOrMenuDoubleTapRecognizer;
 }
--(void) webViewDidStartLoad:(UIWebView *)webView {
+
+-(void) webViewDidStartLoad:(id)webView {
     //[self.view bringSubviewToFront:loadingSpinner];
     if (![previousURL isEqualToString:requestURL]) {
         [loadingSpinner startAnimating];
     }
     previousURL = requestURL;
 }
--(void) webViewDidFinishLoad:(UIWebView *)webView {
+
+-(void) webViewDidFinishLoad:(id)webView {
     [loadingSpinner stopAnimating];
     //[self.view bringSubviewToFront:loadingSpinner];
     NSString *theTitle=[webView stringByEvaluatingJavaScriptFromString:@"document.title"];
-    NSString *currentURL = webView.request.URL.absoluteString;
+    NSURLRequest *request = [webView request];
+    NSString *currentURL = request.URL.absoluteString;
     NSArray *toSaveItem = [NSArray arrayWithObjects:currentURL, theTitle, nil];
     NSMutableArray *historyArray = [NSMutableArray arrayWithObjects:toSaveItem, nil];
     if ([[NSUserDefaults standardUserDefaults] arrayForKey:@"HISTORY"] != nil) {
@@ -67,10 +69,10 @@ typedef struct _Input
     while ([historyArray count] > 100) {
         [historyArray removeLastObject];
     }
-    NSArray *toStoreArray = historyArray;
-    [[NSUserDefaults standardUserDefaults] setObject:toStoreArray forKey:@"HISTORY"];
-    [[NSUserDefaults standardUserDefaults] synchronize];
+
+    [[NSUserDefaults standardUserDefaults] setObject:historyArray forKey:@"HISTORY"];
 }
+
 -(void)viewDidAppear:(BOOL)animated {
     loadingSpinner.center = CGPointMake(CGRectGetMidX([UIScreen mainScreen].bounds), CGRectGetMidY([UIScreen mainScreen].bounds));
     if ([[NSUserDefaults standardUserDefaults] stringForKey:@"savedURLtoReopen"] != nil) {
@@ -78,7 +80,7 @@ typedef struct _Input
         [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"savedURLtoReopen"];
         [[NSUserDefaults standardUserDefaults] synchronize];
     }
-    else if (_webview.request == nil) {
+    else if ([_webview request] == nil) {
         //[self requestURLorSearchInput];
         [self loadHomePage];
     }
@@ -87,6 +89,7 @@ typedef struct _Input
     }
     _displayedHintsOnLaunch = YES;
 }
+
 -(void)loadHomePage {
     if ([[NSUserDefaults standardUserDefaults] stringForKey:@"homepage"] != nil) {
         [self.webview loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:[[NSUserDefaults standardUserDefaults] stringForKey:@"homepage"]]]];
@@ -95,6 +98,7 @@ typedef struct _Input
         [self.webview loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString: @"http://www.google.com"]]];
     }
 }
+
 -(void)viewDidLoad {
     _scrollViewAllowBounces = NO;
     [super viewDidLoad];
@@ -119,15 +123,18 @@ typedef struct _Input
     longPress.allowedPressTypes = @[[NSNumber numberWithInteger:UIPressTypePlayPause]];
     [self.view addGestureRecognizer:longPress];
     
-    self.webview = [[UIWebView alloc] initWithFrame:[UIScreen mainScreen].bounds];
+    self.webview = [[NSClassFromString(@"UIWebView") alloc] initWithFrame:[UIScreen mainScreen].bounds];
     //[self.webview loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:@"http://www.google.com"]]];
     
     [self.view addSubview:self.webview];
     [self.view addSubview:cursorView];
     
-    self.webview.delegate = self;
-    self.webview.scrollView.bounces = _scrollViewAllowBounces;
-    self.webview.scrollView.panGestureRecognizer.allowedTouchTypes = @[ @(UITouchTypeIndirect) ];
+    [self.webview setDelegate:self];
+    UIScrollView *scrollView = [self.webview scrollView];
+
+    scrollView.bounces = _scrollViewAllowBounces;
+    scrollView.panGestureRecognizer.allowedTouchTypes = @[ @(UITouchTypeIndirect) ];
+    
     loadingSpinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
     loadingSpinner.center = CGPointMake(CGRectGetMidX([UIScreen mainScreen].bounds), CGRectGetMidY([UIScreen mainScreen].bounds));
     loadingSpinner.tintColor = [UIColor blackColor];
@@ -137,12 +144,16 @@ typedef struct _Input
     [self.view bringSubviewToFront:loadingSpinner];
     //ENABLE CURSOR MODE INITIALLY
     self.cursorMode = YES;
-    self.webview.scrollView.scrollEnabled = NO;
-    self.webview.userInteractionEnabled = NO;
-    self.webview.scalesPageToFit = NO;
+
+    scrollView.scrollEnabled = NO;
+    
+    [self.webview setUserInteractionEnabled:NO];
+    [self.webview setScalesPageToFit:NO];
+
     cursorView.hidden = NO;
     self.textFontSize = 100;
 }
+
 -(void)handleDoubleTapMenuOrPlayPause:(UITapGestureRecognizer *)sender {
     if (sender.state == UIGestureRecognizerStateEnded) {
         UIAlertController *alertController = [UIAlertController
@@ -161,10 +172,10 @@ typedef struct _Input
                                             style:UIAlertActionStyleDefault
                                             handler:^(UIAlertAction *action)
                                             {
-                                                if (_webview.request != nil) {
-                                                    if (![_webview.request.URL.absoluteString isEqual:@""]) {
-                                                        [[NSUserDefaults standardUserDefaults] setObject:_webview.request.URL.absoluteString forKey:@"homepage"];
-                                                        [[NSUserDefaults standardUserDefaults] synchronize];
+                                                NSURLRequest *request = [_webview request];
+                                                if (request != nil) {
+                                                    if (![request.URL.absoluteString isEqual:@""]) {
+                                                        [[NSUserDefaults standardUserDefaults] setObject:request.URL.absoluteString forKey:@"homepage"];
                                                     }
                                                 }
                                             }];
@@ -233,8 +244,9 @@ typedef struct _Input
                                                                                          style:UIAlertActionStyleDefault
                                                                                          handler:^(UIAlertAction *action)
                                                                                          {
+                                                                                             NSURLRequest *request = [self.webview request];
                                                                                              NSString *theTitle=[_webview stringByEvaluatingJavaScriptFromString:@"document.title"];
-                                                                                             NSString *currentURL = _webview.request.URL.absoluteString;
+                                                                                             NSString *currentURL = request.URL.absoluteString;
                                                                                              UIAlertController *favoritesAddToController = [UIAlertController
                                                                                                                                             alertControllerWithTitle:@"Name New Favorite"
                                                                                                                                             message:currentURL
@@ -364,10 +376,10 @@ typedef struct _Input
                                                [[NSUserDefaults standardUserDefaults] registerDefaults:dictionary];
                                                [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"MobileMode"];
                                                [[NSUserDefaults standardUserDefaults] synchronize];
-                                               if (_webview.request != nil) {
-                                                   if (![_webview.request.URL.absoluteString isEqual:@""]) {
-                                                       [[NSUserDefaults standardUserDefaults] setObject:_webview.request.URL.absoluteString forKey:@"savedURLtoReopen"];
-                                                       [[NSUserDefaults standardUserDefaults] synchronize];
+                                               NSURLRequest *request = [_webview request];
+                                               if (request != nil) {
+                                                   if (![request.URL.absoluteString isEqual:@""]) {
+                                                       [[NSUserDefaults standardUserDefaults] setObject:request.URL.absoluteString forKey:@"savedURLtoReopen"];
                                                    }
                                                }
                                                exit(0);
@@ -381,11 +393,10 @@ typedef struct _Input
                                                 NSDictionary *dictionary = [NSDictionary dictionaryWithObjectsAndKeys:@"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_1) AppleWebKit/601.2.7 (KHTML, like Gecko) Version/9.0.1 Safari/601.2.7", @"UserAgent", nil];
                                                 [[NSUserDefaults standardUserDefaults] registerDefaults:dictionary];
                                                 [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"MobileMode"];
-                                                [[NSUserDefaults standardUserDefaults] synchronize];
-                                                if (_webview.request != nil) {
-                                                    if (![_webview.request.URL.absoluteString isEqual:@""]) {
-                                                        [[NSUserDefaults standardUserDefaults] setObject:_webview.request.URL.absoluteString forKey:@"savedURLtoReopen"];
-                                                        [[NSUserDefaults standardUserDefaults] synchronize];
+                                                NSURLRequest *request = [_webview request];
+                                                if (request != nil) {
+                                                    if (![request.URL.absoluteString isEqual:@""]) {
+                                                        [[NSUserDefaults standardUserDefaults] setObject:request.URL.absoluteString forKey:@"savedURLtoReopen"];
                                                     }
                                                 }
                                                 exit(0);
@@ -445,11 +456,11 @@ typedef struct _Input
                                                  style:UIAlertActionStyleDefault
                                                  handler:^(UIAlertAction *action)
                                                  {
-                                                     if (self.webview.scalesPageToFit) {
-                                                         self.webview.scalesPageToFit = NO;
+                                                     if ([self.webview scalesPageToFit] == YES) {
+                                                         [self.webview setScalesPageToFit: NO];
                                                      } else {
-                                                         self.webview.scalesPageToFit = YES;
-                                                         self.webview.contentMode = UIViewContentModeScaleAspectFit;
+                                                         [self.webview setScalesPageToFit: YES];
+                                                         [self.webview setContentMode: UIViewContentModeScaleAspectFit];
                                                      }
                                                      [self.webview reload];
                                                  }];
@@ -490,13 +501,14 @@ typedef struct _Input
         [self presentViewController:alertController animated:YES completion:nil];
     }
 }
+
 -(void)handleTouchSurfaceDoubleTap:(UITapGestureRecognizer *)sender {
     if (sender.state == UIGestureRecognizerStateEnded) {
         [self toggleMode];
     }
 }
--(void)requestURLorSearchInput
-{
+
+-(void)requestURLorSearchInput {
     UIAlertController *alertController = [UIAlertController
                                           alertControllerWithTitle:@"Enter URL or Search Terms"
                                           message:@""
@@ -591,28 +603,31 @@ typedef struct _Input
                                    }];
     [alertController addAction:searchAction];
     [alertController addAction:goAction];
-    if (_webview.request != nil) {
-        if (![_webview.request.URL.absoluteString  isEqual: @""]) {
+    NSURLRequest *request = [_webview request];
+    if (request != nil) {
+        if (![request.URL.absoluteString  isEqual: @""]) {
             [alertController addAction:reloadAction];
             [alertController addAction:cancelAction];
         }
     }
     [self presentViewController:alertController animated:YES completion:nil];
-    if (_webview.request == nil) {
+    if (request == nil) {
         UITextField *loginTextField = alertController.textFields[0];
         [loginTextField becomeFirstResponder];
     }
-    else if ([_webview.request.URL.absoluteString  isEqual: @""]) {
+    else if ([request.URL.absoluteString  isEqual: @""]) {
         UITextField *loginTextField = alertController.textFields[0];
         [loginTextField becomeFirstResponder];
     }
     
 }
-- (BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType {
+
+- (BOOL)webView:(id)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(NSInteger)navigationType {
     requestURL = request.URL.absoluteString;
     return YES;
 }
-- (void)webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error {
+
+- (void)webView:(id)webView didFailLoadWithError:(NSError *)error {
     [loadingSpinner stopAnimating];
     if (![[NSString stringWithFormat:@"%lid", (long)error.code] containsString:@"999"] && ![[NSString stringWithFormat:@"%lid", (long)error.code] containsString:@"204"]) {
         UIAlertController *alertController = [UIAlertController
@@ -666,8 +681,10 @@ typedef struct _Input
                 [alertController addAction:searchAction];
             }
         }
-        if (_webview.request != nil) {
-            if (![_webview.request.URL.absoluteString  isEqual: @""]) {
+        
+        NSURLRequest *request = [_webview request];
+        if (request != nil) {
+            if (![request.URL.absoluteString  isEqual: @""]) {
                 [alertController addAction:reloadAction];
             }
             else {
@@ -682,25 +699,26 @@ typedef struct _Input
         [self presentViewController:alertController animated:YES completion:nil];
     }
 }
--(void)toggleMode
-{
+
+-(void)toggleMode {
     self.cursorMode = !self.cursorMode;
+    UIScrollView *scrollView = [self.webview scrollView];
     
     if (self.cursorMode)
     {
-        self.webview.scrollView.scrollEnabled = NO;
-        self.webview.userInteractionEnabled = NO;
+        scrollView.scrollEnabled = NO;
+        [self.webview setUserInteractionEnabled:NO];
         cursorView.hidden = NO;
     }
     else
     {
-        self.webview.scrollView.scrollEnabled = YES;
-        self.webview.userInteractionEnabled = YES;
+        scrollView.scrollEnabled = YES;
+        [self.webview setUserInteractionEnabled:YES];
         cursorView.hidden = YES;
     }
 }
-- (void)showHintsAlert
-{
+
+- (void)showHintsAlert {
     UIAlertController *alertController = [UIAlertController
                                           alertControllerWithTitle:@"Usage Guide"
                                           message:@"Double press the touch area to switch between cursor & scroll mode.\nPress the touch area while in cursor mode to click.\nPress the Menu button to navigate back.\nPress the Play/Pause button for a URL bar.\nDouble tap the Play/Pause button or Menu button for more options."
@@ -736,11 +754,9 @@ typedef struct _Input
     }
     [alertController addAction:cancelAction];
     [self presentViewController:alertController animated:YES completion:nil];
-    
-    
 }
-- (void)alertTextFieldShouldReturn:(UITextField *)sender
-{
+
+- (void)alertTextFieldShouldReturn:(UITextField *)sender {
     /*
      _inputViewVisible = NO;
      UIAlertController *alertController = (UIAlertController *)self.presentedViewController;
@@ -781,9 +797,8 @@ typedef struct _Input
      }
      */
 }
--(void)pressesEnded:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event
-{
-    
+
+-(void)pressesEnded:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
     if (presses.anyObject.type == UIPressTypeMenu)
     {
         UIAlertController *alertController = (UIAlertController *)self.presentedViewController;
@@ -937,7 +952,6 @@ typedef struct _Input
             //[self toggleMode];
         }
     }
-    
     else if (presses.anyObject.type == UIPressTypePlayPause)
     {
         UIAlertController *alertController = (UIAlertController *)self.presentedViewController;
@@ -950,6 +964,7 @@ typedef struct _Input
         }
     }
 }
+
 - (void)longPress:(UILongPressGestureRecognizer*)gesture {
     if ( gesture.state == UIGestureRecognizerStateBegan) {
         //[self toggleMode];
@@ -971,13 +986,11 @@ typedef struct _Input
 
 #pragma mark - Cursor Input
 
-- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
-{
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
     self.lastTouchLocation = CGPointMake(-1, -1);
 }
 
-- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
-{
+- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
     for (UITouch *touch in touches)
     {
         CGPoint location = [touch locationInView:self.webview];
@@ -1006,9 +1019,6 @@ typedef struct _Input
         // We only use one touch, break the loop
         break;
     }
-    
 }
-
-
 
 @end

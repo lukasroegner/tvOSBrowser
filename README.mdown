@@ -2,22 +2,6 @@ tvOS Browser
 =============
 
 Web browser for tvOS using private API (aka UIWebView).
-You'll need to redefine the following in Availability.h to build successfully.
-```
-Availability.h for the AppleTV is located in Xcode>Contents>Developer>Platforms>AppleTVOS.platform>Developer>SDKs>AppleTVOS.sdk>usr>include
-Availability.h for the AppleTV Simulator is located in Xcode>Contents>Developer>Platforms>AppleTVSimulator.platform>Developer>SDKs>AppleTVSimulator.sdk>usr>include
-```
-Change:
-```
-#define __TVOS_UNAVAILABLE                    __OS_AVAILABILITY(tvos,unavailable)
-#define __TVOS_PROHIBITED                     __OS_AVAILABILITY(tvos,unavailable)
-```
-To:
-```
-#define __TVOS_UNAVAILABLE_NOTQUITE                    __OS_AVAILABILITY(tvos,unavailable)
-#define __TVOS_PROHIBITED_NOTQUITE                     __OS_AVAILABILITY(tvos,unavailable)
-```
-Do this for Availability.h for both simulator and device if you want to run it on the real hardware.
 
 How to Use tvOSBrowser
 =============

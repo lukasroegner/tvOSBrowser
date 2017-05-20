@@ -7,11 +7,9 @@
 //  Copyright © 2015 High Caffeine Content. All rights reserved.
 //
 
-#import <UIKit/UIKit.h>
-#import <GameKit/GameKit.h>
+@import UIKit;
+@import GameKit;
 
-@interface ViewController : GCEventViewController  <UIWebViewDelegate>
-
+@interface ViewController : GCEventViewController
 
 @end
-
