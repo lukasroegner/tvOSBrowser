@@ -1,6 +1,9 @@
 {
   "layers" : [
     {
+      "filename" : "Glyph.imagestacklayer"
+    },
+    {
       "filename" : "Front.imagestacklayer"
     },
     {
