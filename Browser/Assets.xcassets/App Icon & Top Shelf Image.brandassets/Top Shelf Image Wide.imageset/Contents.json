@@ -2,10 +2,7 @@
   "images" : [
     {
       "idiom" : "tv",
-<<<<<<< Updated upstream
-=======
       "filename" : "topshelf.png",
->>>>>>> Stashed changes
       "scale" : "1x"
     }
   ],
