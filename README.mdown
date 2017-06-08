@@ -11,3 +11,8 @@ How to Use tvOSBrowser
 - Menu will navigate back (like a back button).
 - Pressing the Play/Pause button will let you input URLs, search Google, and reload the page.
 - Double tapping the Play/Pause button or Menu button displays a menu with Favorites, History, set/open homepage, change user agent, clear cache, and clear cookies.
+
+Changes to the original implementation
+=============
+
+- Translation to German
